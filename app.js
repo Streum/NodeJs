@@ -94,3 +94,5 @@ app.delete("/article/:id", (request, response) => {
 app.listen(3000, () => {
   console.log(`Le serveur à démarré`);
 });
+
+// test pour l'école //
