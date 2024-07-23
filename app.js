@@ -1,10 +1,12 @@
 const express = require("express");
 
-// Instancier l'app serveur
 const app = express();
+// Autoriser express à recevoir des donnée envoyer en JSOn dans le body (Le fameux Payload)
+app.use(express.json());
 
+// MOCK
 // Simulation de données en mémoire
-let DB_articles = [
+let DB_Articles = [
   {
     id: 1,
     title: "Premier article",
@@ -23,59 +25,72 @@ let DB_articles = [
     content: "Contenu du troisième article",
     author: "Toto",
   },
-  {
-    id: 4,
-    title: "Quatrième article",
-    content: "Contenu du Quatrième article",
-    author: "Streum",
-  },
 ];
 
-app.use(express.json());
-// Déclarer des routes
+// Routes
 app.get("/articles", (request, response) => {
-  return response.json(DB_articles);
+  return response.json(DB_Articles);
 });
 
 app.get("/article/:id", (request, response) => {
+  // Il faut l'id en entier
   const id = parseInt(request.params.id);
-  const article = DB_articles.find((article) => article.id === id);
 
-  if (article) {
-    return response.json(article);
-  } else {
-    return response.json("Article non trouvé");
-  }
+  // Le code qui retrouve l'article ayant l'attribut id === l'id en param
+  const foundArticle = DB_Articles.find((article) => article.id === id);
+
+  return response.json(foundArticle);
 });
 
 app.post("/save-article", (request, response) => {
-  DB_articles.push(request.body);
-
-  // Si je trouve je le modifie
+  // Récupérer l'article envoyé en json
   const articleJSON = request.body;
 
-  //Sinon je créer
+  // TODO : Controle de surface (valider les données)
 
-  return response.json(DB_articles);
+  let foundArticle = null;
+  // Est-ce on a un id envoyer dans le json
+  if (articleJSON.id != undefined || articleJSON.id) {
+    // essayer de trouver un article existant
+    foundArticle = DB_Articles.find((article) => article.id === articleJSON.id);
+  }
+
+  // Si je trouve je modifie les nouvelles valeurs
+  if (foundArticle) {
+    foundArticle.title = articleJSON.title;
+    foundArticle.content = articleJSON.content;
+    foundArticle.author = articleJSON.author;
+
+    return response.json(`L'article a été modifié avec succès`);
+  }
+
+  // Sinon par défaut je créer
+  DB_Articles.push(articleJSON);
+
+  return response.json(`Article crée avec succès !`);
 });
 
 app.delete("/article/:id", (request, response) => {
+  // Il faut l'id en entier
   const id = parseInt(request.params.id);
-  const article = DB_articles.find((article) => article.id === id);
 
-  if (article) {
-    DB_articles.splice(id);
-    console.log(id);
-    return response.json(`Article ${id} supprimé avec succès`);
+  // trouver l'index
+  const foundArticleIndex = DB_Articles.findIndex(
+    (article) => article.id === id
+  );
+
+  // si article trouve erreur
+  if (foundArticleIndex < 0) {
+    return response.json(`Impossible de supprimer un article inexistant`);
   }
-  // else {
-  // return response.json("Article non trouvé");
-  // }
+
+  // supprimer grace à l'index
+  DB_Articles.splice(foundArticleIndex, 1);
+
+  return response.json(`Article supprimé ${id}`);
 });
 
-// Démarrer
-// Param 1 = Le port ou on lance le serveur
-// Param 2 = Que faire quand le serveur à démarrer (affiche un log)
+// Démarrer le serveur
 app.listen(3000, () => {
-  console.log("Le serveur à démarré");
+  console.log(`Le serveur à démarré`);
 });
