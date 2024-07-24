@@ -1,0 +1,8 @@
+(lanceur de base)
+node ./node_modules/nodemon/bin/nodemon.js
+
+(pour le lancer dans le m_03)
+node ./node_modules/nodemon/bin/nodemon.js m_03/app.js
+
+(pour le lancer dans le m_04)
+node ./node_modules/nodemon/bin/nodemon.js m_04/app.js
