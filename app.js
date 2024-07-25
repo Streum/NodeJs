@@ -33,6 +33,19 @@ const Article = mongoose.model('Article', { uid: String, title: String, content:
 
 // ================BDD================ //
 
+
+/**
+ * Fonction utilitaire pour retourner une structure de réponse métier
+ * @param {*} response 
+ * @param {*} code 
+ * @param {*} message 
+ * @param {*} data 
+ * @returns 
+ */
+function responseService(response, code, message, data) {
+  return response.json({ code: code, message: message, data: data });
+};
+
 // MOCK
 // Routes
 app.get("/articles", async (request, response) => {
@@ -40,7 +53,8 @@ app.get("/articles", async (request, response) => {
   //Select all articles
   const articles = await Article.find();
 
-  return response.json(articles);
+  // RG-001 200 valid
+  return responseService(response, '200', 'La liste des articles a été récupérés avec succès', articles);
 });
 
 app.get("/article/:id", async (request, response) => {
@@ -51,7 +65,14 @@ app.get("/article/:id", async (request, response) => {
   // Le code qui retrouve l'article ayant l'attribut id === l'id en param
   const foundArticle = await Article.findOne({uid : id});
 
-  return response.json(foundArticle);
+  // RG-002 702 Si article inexistant
+  if(!foundArticle) {
+    return responseService(response, '702', `Impossible derécupérer un article avec l'UID ${id}`, null);
+  }
+
+  // RG-002 200 valid
+  return responseService(response, '200', 'Article récupéré avec succès', foundArticle);
+
 });
 
 app.post("/save-article", async (request, response) => {
@@ -62,10 +83,16 @@ app.post("/save-article", async (request, response) => {
 
   let foundArticle = null;
   //----------------------------
-  // EDITION
+  // EDITION RG-004
   //----------------------------
   // Est-ce on a un id envoyer dans le json
   if (articleJSON.id != undefined || articleJSON.id) {
+    // Si il existe déjà
+    const articleBytitle = await Article.findOne({ title : articleJSON.title, uid : { $ne : articleJSON.id}});
+    if (articleBytitle) {
+      return responseService(response, '701', `Impossible d'ajouter un article avec un titre déjà existant`, null)
+    }
+
     // essayer de trouver un article existant
     foundArticle = await Article.findOne({uid : articleJSON.id});
   
@@ -86,8 +113,15 @@ app.post("/save-article", async (request, response) => {
     return response.json(`L'article a été modifié avec succès`);
   }
   //----------------------------
-  // CREATION
+  // CREATION RG-003
   //----------------------------
+
+  // RG-003 (701) Tester que le titre n'exoste pas en base
+  const articleBytitle = await Article.findOne({ title : articleJSON.title });
+  if (articleBytitle) {
+    return responseService(response, '701', `Impossible d'ajouter un article avec un titre déjà existant`, null);
+  }
+
   // Instancier un article Mongo
   const createArticle = await Article.create(articleJSON);
 
@@ -97,7 +131,8 @@ app.post("/save-article", async (request, response) => {
   // Sauvegarder en base
   await createArticle.save();
 
-  return response.json(`Article crée avec succès !`);
+  // succès (200)
+  return responseService(response, '200', `Article crée avec succès !`, createArticle);
 });
 
 app.delete("/article/:id", async (request, response) => {
@@ -109,13 +144,15 @@ app.delete("/article/:id", async (request, response) => {
 
   // si article trouve erreur
   if (!foundArticle) {
-    return response.json(`Impossible de supprimer un article inexistant`);
+    // RG-005 echec (702)
+    return responseService(response, '702', `Impossible de supprimer un article dont l'UID n'existe pas`, null);
   }
 
   // supprimer grace à l'index
   await foundArticle.deleteOne();
 
-  return response.json(`Article supprimé ${id}`);
+  // succès (200)
+  return responseService(response, '200', `L'article ${id} a été supprimé avec succès`, foundArticle);
 });
 
 // Démarrer le serveur
