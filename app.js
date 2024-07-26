@@ -46,6 +46,34 @@ function responseService(response, code, message, data) {
   return response.json({ code: code, message: message, data: data });
 };
 
+// Middleware
+function authMiddleware(request, response, next) {
+  // Si token null alors erreur
+  if (request.headers.authorization == undefined || !request.headers.authorization) {
+    return response.json({ message: "Token null" });
+  }
+
+  // Extraire le token (qui est bearer)
+  const token = request.headers.authorization.substring(7);
+
+  // par defaut le result est null
+  let result = null;
+
+  // Si reussi à générer le token sans crash
+  try {
+    result = jwt.verify(token, JWT_SECRET);
+  } catch {
+  }
+
+  // Si result null donc token incorrect
+  if (!result) {
+    return response.json({ message: "token pas bon" });
+  }
+
+  // On passe le middleware
+  return next();
+}
+
 // MOCK
 // Routes
 app.get("/articles", async (request, response) => {
@@ -75,7 +103,7 @@ app.get("/article/:id", async (request, response) => {
 
 });
 
-app.post("/save-article", async (request, response) => {
+app.post("/save-article", authMiddleware, async (request, response) => {
   // Récupérer l'article envoyé en json
   const articleJSON = request.body;
 
@@ -135,7 +163,7 @@ app.post("/save-article", async (request, response) => {
   return responseService(response, '200', `Article crée avec succès !`, createArticle);
 });
 
-app.delete("/article/:id", async (request, response) => {
+app.delete("/article/:id", authMiddleware,  async (request, response) => {
   // Il faut l'id en entier
   const id = request.params.id;
 
